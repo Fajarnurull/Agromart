@@ -72,6 +72,141 @@ function openProduct(id){
   new bootstrap.Modal(document.getElementById("productModal")).show();
 }
 
+/* ========================
+   FITUR LOGIN / DAFTAR
+======================== */
+
+// Simpan data user di localStorage
+function saveUsers(users) {
+  localStorage.setItem('users', JSON.stringify(users));
+}
+
+// Ambil data user dari localStorage
+function getUsers() {
+  return JSON.parse(localStorage.getItem('users') || '[]');
+}
+
+// Simpan user yang sedang login
+function setLoggedUser(user) {
+  localStorage.setItem('loggedUser', JSON.stringify(user));
+}
+
+// Ambil user yang sedang login
+function getLoggedUser() {
+  return JSON.parse(localStorage.getItem('loggedUser') || 'null');
+}
+
+// Hapus user yang sedang login (logout)
+function logout() {
+  localStorage.removeItem('loggedUser');
+  renderUserArea();
+  toast('Berhasil logout!');
+}
+
+// Render tampilan user di navbar
+function renderUserArea() {
+  const user = getLoggedUser();
+  const el = document.getElementById('user-area');
+  if (!el) return;
+
+  if (user) {
+    el.innerHTML = `
+      <div class="dropdown">
+        <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-person-circle"></i> ${user.name}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#orders">Pesanan Saya</a></li>
+          <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+        </ul>
+      </div>
+    `;
+  } else {
+    el.innerHTML = `<button class="btn btn-outline-light btn-sm" onclick="showLoginModal()">Masuk</button>`;
+  }
+}
+
+/* ----- Modal Handling ----- */
+
+// Buka modal login
+function showLoginModal() {
+  showLogin();
+  const modal = new bootstrap.Modal(document.getElementById('authModal'));
+  modal.show();
+}
+
+// Tampilkan form login
+function showLogin() {
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('authTitle').innerText = 'Login';
+}
+
+// Tampilkan form daftar
+function showRegister() {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('authTitle').innerText = 'Daftar';
+}
+
+/* ----- LOGIN FUNCTION ----- */
+function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  const users = getUsers();
+  const user = users.find(u => u.email === email && u.pass === pass);
+
+  if (!user) {
+    alert('Email atau password salah!');
+    return;
+  }
+
+  setLoggedUser(user);
+  renderUserArea();
+  bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+  toast(`Selamat datang, ${user.name}!`);
+}
+
+/* ----- REGISTER FUNCTION ----- */
+function register() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value.trim();
+
+  if (!name || !email || !pass) {
+    alert('Lengkapi semua kolom!');
+    return;
+  }
+
+  const users = getUsers();
+  if (users.find(u => u.email === email)) {
+    alert('Email sudah terdaftar!');
+    return;
+  }
+
+  users.push({ name, email, pass });
+  saveUsers(users);
+  alert('Pendaftaran berhasil! Silakan login.');
+  showLogin();
+}
+
+/* ----- NOTIFIKASI SEDERHANA ----- */
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast align-items-center text-bg-success border-0 position-fixed bottom-0 end-0 m-3 show';
+  el.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">${msg}</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+/* ----- INIT ----- */
+document.addEventListener('DOMContentLoaded', renderUserArea);
+
+
 // === KERANJANG ===
 function toggleCart(){
   document.getElementById("cart").classList.toggle("active");
@@ -161,3 +296,4 @@ function init(){
   updateCartCount();
 }
 window.onload = init;
+
