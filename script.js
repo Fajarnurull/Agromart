@@ -72,6 +72,86 @@ function openProduct(id){
   new bootstrap.Modal(document.getElementById("productModal")).show();
 }
 
+// === KERANJANG ===
+function toggleCart(){
+  document.getElementById("cart").classList.toggle("active");
+  renderCart();
+}
+
+function addToCart(id){
+  const p = products.find(x=>x.id===id);
+  const qty = parseInt(document.getElementById("productQty").value) || 1;
+  const item = cart.find(x=>x.id===id);
+  if(item) item.qty += qty; else cart.push({...p, qty});
+  saveData(); renderCart(); updateCartCount();
+  bootstrap.Modal.getInstance(document.getElementById("productModal")).hide();
+}
+
+function renderCart(){
+  const items = document.getElementById("cart-items");
+  if(cart.length===0){ items.innerHTML="<li class='list-group-item text-center'>Keranjang kosong</li>"; return;}
+  items.innerHTML = cart.map(i=>`
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      ${i.name} x${i.qty}
+      <span>Rp ${(i.price*i.qty).toLocaleString()}</span>
+    </li>`).join("");
+  document.getElementById("cart-total").textContent = cart.reduce((t,i)=>t+i.price*i.qty,0).toLocaleString();
+}
+
+function updateCartCount(){ document.getElementById("cart-count").textContent = cart.length; }
+
+function clearCart(){ cart=[]; saveData(); renderCart(); updateCartCount(); }
+
+// === CHECKOUT ===
+function checkout(){
+  if(cart.length===0){ alert("Keranjang kosong!"); return; }
+  const addr = document.getElementById("shippingAddress").value;
+  if(!addr){ alert("Isi alamat pengiriman terlebih dahulu."); return; }
+  const payment = document.getElementById("paymentMethod").value;
+  const orderId = "ORD"+Date.now();
+  orders.push({id:orderId, items:[...cart], address:addr, payment, status:"Diproses"});
+  cart=[]; saveData(); renderOrders(); renderCart(); updateCartCount();
+  alert("Pesanan berhasil dibuat!");
+}
+
+// === PESANAN ===
+function renderOrders(){
+  const area = document.getElementById("orders-list");
+  if(orders.length===0){ area.innerHTML="<p>Belum ada pesanan.</p>"; return;}
+  area.innerHTML = orders.map(o=>`
+    <div class="order-card mb-2">
+      <div><strong>${o.id}</strong> (${o.status})</div>
+      <ul>${o.items.map(i=>`<li>${i.name} x${i.qty}</li>`).join("")}</ul>
+      <button class="btn btn-sm btn-outline-success" onclick="trackOrder('${o.id}')">Lacak</button>
+    </div>
+  `).join("");
+}
+
+// === TRACKING PESANAN ===
+function trackOrder(id){
+  document.getElementById("trackingOrderId").textContent = id;
+  document.getElementById("trackingProgress").style.width = "20%";
+  document.getElementById("trackingText").textContent = "Pesanan sedang diproses...";
+  new bootstrap.Modal(document.getElementById("trackingModal")).show();
+}
+
+function simulateProgress(){
+  const bar = document.getElementById("trackingProgress");
+  let width = parseInt(bar.style.width);
+  if(width<100){ width+=20; bar.style.width=width+"%"; bar.textContent=width+"%"; }
+  document.getElementById("trackingText").textContent =
+    width>=100 ? "Pesanan telah tiba di lokasi Anda." :
+    width>=60 ? "Pesanan sedang dalam perjalanan." :
+    "Pesanan sedang diproses...";
+}
+
+// === SEARCH ===
+function doSearch(){
+  const q = document.getElementById("searchBox").value.toLowerCase();
+  const result = products.filter(p=>p.name.toLowerCase().includes(q));
+  renderProducts(result);
+}
+
 /* ========================
    FITUR LOGIN / DAFTAR
 ======================== */
@@ -207,85 +287,6 @@ function toast(msg) {
 document.addEventListener('DOMContentLoaded', renderUserArea);
 
 
-// === KERANJANG ===
-function toggleCart(){
-  document.getElementById("cart").classList.toggle("active");
-  renderCart();
-}
-
-function addToCart(id){
-  const p = products.find(x=>x.id===id);
-  const qty = parseInt(document.getElementById("productQty").value) || 1;
-  const item = cart.find(x=>x.id===id);
-  if(item) item.qty += qty; else cart.push({...p, qty});
-  saveData(); renderCart(); updateCartCount();
-  bootstrap.Modal.getInstance(document.getElementById("productModal")).hide();
-}
-
-function renderCart(){
-  const items = document.getElementById("cart-items");
-  if(cart.length===0){ items.innerHTML="<li class='list-group-item text-center'>Keranjang kosong</li>"; return;}
-  items.innerHTML = cart.map(i=>`
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      ${i.name} x${i.qty}
-      <span>Rp ${(i.price*i.qty).toLocaleString()}</span>
-    </li>`).join("");
-  document.getElementById("cart-total").textContent = cart.reduce((t,i)=>t+i.price*i.qty,0).toLocaleString();
-}
-
-function updateCartCount(){ document.getElementById("cart-count").textContent = cart.length; }
-
-function clearCart(){ cart=[]; saveData(); renderCart(); updateCartCount(); }
-
-// === CHECKOUT ===
-function checkout(){
-  if(cart.length===0){ alert("Keranjang kosong!"); return; }
-  const addr = document.getElementById("shippingAddress").value;
-  if(!addr){ alert("Isi alamat pengiriman terlebih dahulu."); return; }
-  const payment = document.getElementById("paymentMethod").value;
-  const orderId = "ORD"+Date.now();
-  orders.push({id:orderId, items:[...cart], address:addr, payment, status:"Diproses"});
-  cart=[]; saveData(); renderOrders(); renderCart(); updateCartCount();
-  alert("Pesanan berhasil dibuat!");
-}
-
-// === PESANAN ===
-function renderOrders(){
-  const area = document.getElementById("orders-list");
-  if(orders.length===0){ area.innerHTML="<p>Belum ada pesanan.</p>"; return;}
-  area.innerHTML = orders.map(o=>`
-    <div class="order-card mb-2">
-      <div><strong>${o.id}</strong> (${o.status})</div>
-      <ul>${o.items.map(i=>`<li>${i.name} x${i.qty}</li>`).join("")}</ul>
-      <button class="btn btn-sm btn-outline-success" onclick="trackOrder('${o.id}')">Lacak</button>
-    </div>
-  `).join("");
-}
-
-// === TRACKING PESANAN ===
-function trackOrder(id){
-  document.getElementById("trackingOrderId").textContent = id;
-  document.getElementById("trackingProgress").style.width = "20%";
-  document.getElementById("trackingText").textContent = "Pesanan sedang diproses...";
-  new bootstrap.Modal(document.getElementById("trackingModal")).show();
-}
-
-function simulateProgress(){
-  const bar = document.getElementById("trackingProgress");
-  let width = parseInt(bar.style.width);
-  if(width<100){ width+=20; bar.style.width=width+"%"; bar.textContent=width+"%"; }
-  document.getElementById("trackingText").textContent =
-    width>=100 ? "Pesanan telah tiba di lokasi Anda." :
-    width>=60 ? "Pesanan sedang dalam perjalanan." :
-    "Pesanan sedang diproses...";
-}
-
-// === SEARCH ===
-function doSearch(){
-  const q = document.getElementById("searchBox").value.toLowerCase();
-  const result = products.filter(p=>p.name.toLowerCase().includes(q));
-  renderProducts(result);
-}
 
 // === INIT ===
 function init(){
@@ -296,4 +297,3 @@ function init(){
   updateCartCount();
 }
 window.onload = init;
-
